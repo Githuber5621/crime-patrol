@@ -1,0 +1,4 @@
+to start:
+```
+npm start
+```
