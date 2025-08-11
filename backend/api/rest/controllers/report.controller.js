@@ -4,7 +4,7 @@ const { DATABASE_ID, COLLECTIONS } = require("../../../constants/database"); // 
 /**
  * Creates a new report with related data (location, media).
  * Expects `incident_type`, `location`, `description` in the request body.
- * `media_attachments` is an optional array of file IDs.
+ * `media_attachments` is an optional array of media objects from the media upload endpoint.
  *
  * @param {import('express').Request} req The Express request object.
  * @param {import('express').Response} res The Express response object.
@@ -13,12 +13,6 @@ const createReport = async (req, res) => {
   try {
     const { incident_type, location, description, media_attachments } =
       req.body;
-
-    if (!incident_type || !location || !description) {
-      return res.status(400).json({
-        message: "Missing required fields: incident_type, location, description.",
-      });
-    }
 
     // 1. Create the main report document
     const reportDoc = await databases.createDocument(
@@ -51,15 +45,21 @@ const createReport = async (req, res) => {
 
     // 3. Create associated media documents if any attachments are present
     if (media_attachments && media_attachments.length > 0) {
-      media_attachments.forEach((fileId) => {
+      media_attachments.forEach((media) => {
         relatedDataPromises.push(
           databases.createDocument(
             DATABASE_ID,
             COLLECTIONS.MEDIA,
             ID.unique(),
             {
-              file_id: fileId, // Assumes file is already in Appwrite Storage
               report_id: reportId,
+              file_id: media.public_id, // From Cloudinary
+              secure_url: media.secure_url,
+              cloudinary_url: media.secure_url,
+              // Note: The following fields are passed from the frontend
+              // after being returned by the media upload endpoint.
+              media_type: media.media_type,
+              file_name_original: media.file_name_original,
             }
           )
         );
