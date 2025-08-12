@@ -1,87 +1,69 @@
 -- Stores the different types of incidents (Theft, Assault, etc.)
-CREATE TABLE incident_types (
-    incident_type_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    category VARCHAR(100) -- e.g., 'Property Crime', 'Violent Crime', 'Public Order'
+CREATE TABLE tblincident_types (
+    itp_id SERIAL PRIMARY KEY,
+    itp_name VARCHAR(100) NOT NULL UNIQUE,
+    itp_category VARCHAR(100) -- e.g., 'Property Crime', 'Violent Crime', 'Public Order'
 );
 
 -- Stores the different types of locations (Residence, Business, etc.)
-CREATE TABLE location_types (
-    location_type_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE
+CREATE TABLE tbllocation_types (
+    ltp_id SERIAL PRIMARY KEY,
+    ltp_name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- Stores information about the person filing the report.
-CREATE TABLE reporters (
-    reporter_id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    phone VARCHAR(50) UNIQUE, -- Unique phone number is a good way to identify repeat reporters
-    email VARCHAR(255) UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- Stores user information, including citizens who file reports and system administrators.
+CREATE TABLE tblusers (
+    usr_id SERIAL PRIMARY KEY,
+    usr_auth_id UUID UNIQUE, -- Links to the id in the auth.users table
+    usr_name VARCHAR(255),
+    usr_email VARCHAR(255) NOT NULL UNIQUE,
+    usr_phone VARCHAR(50),
+    usr_role VARCHAR(50) NOT NULL DEFAULT 'citizen' CHECK (usr_role IN ('citizen', 'admin', 'moderator')),
+    usr_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    usr_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- The main table for storing crime reports.
-CREATE TABLE reports (
-    report_id SERIAL PRIMARY KEY,
-    incident_type_id INT REFERENCES incident_types(incident_type_id),
-    reporter_id INT REFERENCES reporters(reporter_id),
-    location_type_id INT REFERENCES location_types(location_type_id),
+CREATE TABLE tblreports (
+    rep_id SERIAL PRIMARY KEY,
+    rep_incident_type_id INT REFERENCES tblincident_types(itp_id),
+    rep_user_id INT REFERENCES tblusers(usr_id),
+    rep_location_type_id INT REFERENCES tbllocation_types(ltp_id),
 
     -- Incident Details
-    incident_datetime TIMESTAMPTZ, -- Storing date and time together is more efficient. Can be NULL if not known.
-    is_in_progress BOOLEAN NOT NULL DEFAULT FALSE,
-    description TEXT, -- Can hold both brief and detailed descriptions.
+    rep_incident_datetime TIMESTAMPTZ, -- Storing date and time together is more efficient. Can be NULL if not known.
+    rep_description TEXT, -- Can hold both brief and detailed descriptions.
 
     -- Location Details
-    location_address TEXT,
-    location_details TEXT,
-    latitude DECIMAL(9, 6), -- For GPS coordinates
-    longitude DECIMAL(9, 6),
-
-    -- Reporter Relationship
-    is_victim_reporter BOOLEAN DEFAULT FALSE,
+    rep_location_address TEXT,
+    rep_location_details TEXT,
+    rep_latitude DECIMAL(9, 6), -- For GPS coordinates
+    rep_longitude DECIMAL(9, 6),
 
     -- System Metadata
-    status VARCHAR(50) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'triage', 'detailed', 'investigating', 'resolved', 'closed')),
-    priority_level VARCHAR(50) DEFAULT 'medium' CHECK (priority_level IN ('low', 'medium', 'high')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Stores information about victims associated with a report.
-CREATE TABLE victims (
-    victim_id SERIAL PRIMARY KEY,
-    report_id INT NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    contact VARCHAR(255) -- Optional contact info
+    rep_status VARCHAR(50) NOT NULL DEFAULT 'new' CHECK (rep_status IN ('new', 'triage', 'detailed', 'investigating', 'resolved', 'closed')),
+    rep_priority_level VARCHAR(50) DEFAULT 'medium' CHECK (rep_priority_level IN ('low', 'medium', 'high')),
+    rep_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    rep_updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Stores information about suspects associated with a report.
-CREATE TABLE suspects (
-    suspect_id SERIAL PRIMARY KEY,
-    report_id INT NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
-    description TEXT NOT NULL,
-    vehicle_description TEXT -- Optional vehicle information
-);
-
--- Stores information about witnesses associated with a report.
-CREATE TABLE witnesses (
-    witness_id SERIAL PRIMARY KEY,
-    report_id INT NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
-    info TEXT NOT NULL -- Information/statement from the witness
+CREATE TABLE tblsuspects (
+    sus_id SERIAL PRIMARY KEY,
+    sus_report_id INT NOT NULL REFERENCES tblreports(rep_id) ON DELETE CASCADE,
+    sus_description TEXT NOT NULL
 );
 
 -- Stores metadata for media files attached to a report.
-CREATE TABLE media_attachments (
-    media_id SERIAL PRIMARY KEY,
-    report_id INT NOT NULL REFERENCES reports(report_id) ON DELETE CASCADE,
-    file_id VARCHAR(255) NOT NULL UNIQUE, -- The ID from the cloud service (e.g., Cloudinary public_id)
-    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('photo', 'video', 'audio')),
-    secure_url TEXT NOT NULL, -- The direct URL to access the file
-    file_name_original TEXT,
-    format VARCHAR(20),
-    mime_type VARCHAR(100),
-    display_order INT, -- To control the order in which media is shown
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE tblmedia_attachments (
+    med_id SERIAL PRIMARY KEY,
+    med_report_id INT NOT NULL REFERENCES tblreports(rep_id) ON DELETE CASCADE,
+    med_file_id VARCHAR(255) NOT NULL UNIQUE, -- The ID from the cloud service (e.g., Cloudinary public_id)
+    med_media_type VARCHAR(20) NOT NULL CHECK (med_media_type IN ('photo', 'video', 'audio')),
+    med_secure_url TEXT NOT NULL, -- The direct URL to access the file
+    med_file_name_original TEXT,
+    med_format VARCHAR(20),
+    med_mime_type VARCHAR(100),
+    med_display_order INT, -- To control the order in which media is shown
+    med_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

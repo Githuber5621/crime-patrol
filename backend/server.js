@@ -9,6 +9,7 @@ import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
 import { ruruHTML } from 'ruru/server';
 import { createHandler } from 'graphql-http/lib/use/express';
 import express from 'express';
+import reportRoutes from './api/rest/routes/report.routes.js';
  
 // Construct a schema
 const schema = new GraphQLSchema({
@@ -41,6 +42,12 @@ app.use("/api/user", userRoutes);
 // GraphQL API
  
 const app = express();
+
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Mount REST API routes
+app.use('/api/reports', reportRoutes);
  
 // Create and use the GraphQL handler.
 app.all(
