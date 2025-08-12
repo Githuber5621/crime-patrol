@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { account, ID } from "../../lib/appwrite";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -12,26 +11,40 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setIsLoading(true);
+  e.preventDefault();
+  setErrorMsg("");
+  setIsLoading(true);
 
-    if (password !== confirmPassword) {
-      setErrorMsg("Passwords do not match");
-      setIsLoading(false);
-      return;
+  if (password !== confirmPassword) {
+    setErrorMsg("Passwords do not match");
+    setIsLoading(false);
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:4000/api/user/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // so cookies from backend get stored
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Registration failed");
     }
 
-    try {
-      await account.create(ID.unique(), email, password, name);
-      await account.createEmailPasswordSession(email, password);
-      navigate("/dashboard");
-    } catch (err) {
-      setErrorMsg(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Registration success → navigate to dashboard
+    navigate("/dashboard");
+  } catch (err) {
+    setErrorMsg(err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen w-full bg-gray-900 text-white flex items-center justify-center">

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { account } from "../../lib/appwrite";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,24 +9,34 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setIsLoading(true);
-    try {
-      try {
-        await account.deleteSession("current");
-      } catch {
-        // Ignore error if no session exists
-      }
+  e.preventDefault();
+  setErrorMsg("");
+  setIsLoading(true);
 
-      await account.createEmailPasswordSession(email, password);
-      navigate("/dashboard");
-    } catch (err) {
-      setErrorMsg(err.message);
-    } finally {
-      setIsLoading(false);
+  try {
+    const res = await fetch("http://localhost:4000/api/user/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // important if backend sets HTTP-only cookies
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
     }
-  };
+
+    // Login success → navigate to dashboard
+    navigate("/dashboard");
+  } catch (err) {
+    setErrorMsg(err.message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen w-full bg-gray-900 text-white flex items-center justify-center">
