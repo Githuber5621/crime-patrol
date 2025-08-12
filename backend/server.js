@@ -5,12 +5,18 @@ import { createHandler } from 'graphql-http/lib/use/express';
 import { ruruHTML } from 'ruru/server';
 import userRoutes from "./api/rest/routes/user.routes.js";
 
+import { GraphQLObjectType, GraphQLSchema, GraphQLString } from 'graphql';
+import { ruruHTML } from 'ruru/server';
+import { createHandler } from 'graphql-http/lib/use/express';
+import express from 'express';
+ 
 // Construct a schema
 const schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: 'Query',
     fields: {
       hello: {
+      hello: { 
         type: GraphQLString,
         resolve: () => 'Hello world!'
       },
@@ -33,6 +39,10 @@ app.use(express.json());
 app.use("/api/user", userRoutes);
 
 // GraphQL API
+ 
+const app = express();
+ 
+// Create and use the GraphQL handler.
 app.all(
   '/graphql',
   createHandler({
@@ -41,6 +51,7 @@ app.all(
 );
 
 // GraphiQL IDE
+// Serve the GraphiQL IDE.
 app.get('/graphql/ide', (_req, res) => {
   res.type('html');
   res.end(ruruHTML({ endpoint: '/graphql' }));
@@ -51,3 +62,8 @@ app.listen(4000, () => {
   console.log('Running a REST API server at http://localhost:4000/api/');
   console.log('Running a GraphQL API server at http://localhost:4000/graphql');
 });
+// Start the server at port
+app.listen(4000);
+console.log('Running a REST API server at http://localhost:4000/api/');
+console.log('Running a GraphQL API server at http://localhost:4000/graphql');
+ 
